@@ -37,21 +37,33 @@ class _MyHomePageState extends State<MyHomePage> {
   String city = 'Omsk';
   Map<String, dynamic> weatherData = {};
   bool loadingFlag = true;
-  Future<void> _fetchWeatherInfo(String city) async {
-    loadingFlag = true;
-    Uri url = Uri.parse(
-        'http://api.weatherapi.com/v1/current.json?key=44073bca73c849dea57100035250601&q=${city}&aqi=no');
-    final response = await http.get(url);
+  bool hasError = false;
 
-    if (response.statusCode == 200) {
-      setState(
-        () {
+  Future<void> _fetchWeatherInfo(String city) async {
+    setState(() {
+      loadingFlag = true;
+      hasError = false;
+    });
+
+    Uri url = Uri.parse(
+        'http://api.weatherapi.com/v1/current.json?key=44073bca73c849dea57100035250601&q=$city&aqi=no');
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        setState(() {
           weatherData = json.decode(response.body);
           loadingFlag = false;
-        },
-      );
-    } else {
-      throw Exception('Failed to load weather data');
+        });
+      } else {
+        throw Exception('Failed to load weather data');
+      }
+    } catch (e) {
+      setState(() {
+        loadingFlag = false;
+        hasError = true;
+      });
     }
   }
 
@@ -72,6 +84,30 @@ class _MyHomePageState extends State<MyHomePage> {
       );
     }
 
+    if (hasError) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Погода')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'Ошибка загрузки данных о погоде.',
+                style: TextStyle(fontSize: 18),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  _fetchWeatherInfo('Omsk');
+                },
+                child: const Text('Повторить'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     var location = weatherData['location']['name'];
     final temp = weatherData['current']['temp_c'];
     final feelsLike = weatherData['current']['feelslike_c'];
@@ -84,7 +120,7 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SizedBox(
+              const SizedBox(
                 height: 32,
               ),
               TextField(
@@ -100,7 +136,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   });
                 },
               ),
-              SizedBox(
+              const SizedBox(
                 height: 24,
               ),
               Text(
